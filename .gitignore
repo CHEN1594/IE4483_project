@@ -1,0 +1,8 @@
+# Ignore dataset folders
+train/
+test/
+val/
+
+# Optional: ignore any hidden system files
+.DS_Store
+Thumbs.db
