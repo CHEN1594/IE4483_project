@@ -4,6 +4,7 @@ test/
 val/
 datasets/
 models/
+datasets_cifar10/
 # Optional: ignore any hidden system files
 .DS_Store
 Thumbs.db
