@@ -2,7 +2,8 @@
 train/
 test/
 val/
-
+datasets/
+models/
 # Optional: ignore any hidden system files
 .DS_Store
 Thumbs.db
