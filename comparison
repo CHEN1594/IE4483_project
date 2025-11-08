@@ -1,1 +1,62 @@
-a
+# ==============================
+# Baseline Model: ResNet18 on Cat vs Dog
+# ==============================
+import os, torch, numpy as np
+from torchvision import datasets, transforms, models
+from torch.utils.data import DataLoader
+from torch import nn, optim
+from tqdm import tqdm
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DATA_DIR = os.path.join(os.getcwd(), "datasets")
+TRAIN_DIR = os.path.join(DATA_DIR, "train")
+VAL_DIR = os.path.join(DATA_DIR, "val")
+
+# --- 1. Simplified transform (no color jitter, rotation etc.) ---
+train_tf = transforms.Compose([
+    transforms.Resize((224,224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])
+])
+val_tf = transforms.Compose([
+    transforms.Resize((224,224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])
+])
+
+train_set = datasets.ImageFolder(TRAIN_DIR, transform=train_tf)
+val_set   = datasets.ImageFolder(VAL_DIR, transform=val_tf)
+train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
+val_loader   = DataLoader(val_set, batch_size=32, shuffle=False)
+
+# --- 2. Model: ResNet18 pretrained on ImageNet ---
+model = models.resnet18(pretrained=True)
+model.fc = nn.Linear(model.fc.in_features, 2)
+model = model.to(DEVICE)
+
+# --- 3. Training setup ---
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+# --- 4. Train few epochs ---
+EPOCHS = 3
+for epoch in range(EPOCHS):
+    model.train()
+    for x, y in tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}"):
+        x, y = x.to(DEVICE), y.to(DEVICE)
+        optimizer.zero_grad()
+        loss = criterion(model(x), y)
+        loss.backward()
+        optimizer.step()
+    # Evaluate
+    model.eval(); correct = 0; total = 0
+    with torch.no_grad():
+        for x, y in val_loader:
+            x, y = x.to(DEVICE), y.to(DEVICE)
+            pred = model(x).argmax(1)
+            correct += (pred == y).sum().item()
+            total += y.size(0)
+    print(f"Val Accuracy: {correct/total*100:.2f}%")
+
